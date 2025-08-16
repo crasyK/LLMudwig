@@ -13,7 +13,11 @@ from typing import Literal
 from pydantic import BaseModel
 
 class ImageDescription(BaseModel):
-    emotion: Literal["Happy", "Excited", "Sad", "Angry", "Surprised", "Neutral", "CUTE"]
+    emotion: Literal[
+        "Happy", "Excited", "Sad", "Angry", "Surprised", "Neutral", "CUTE",
+        "Confused", "Tired", "Motivated", "Bored", "Proud", "Nervous", "Shy",
+        "Cool", "In Love", "Exhausted", "Embarrassed", "Surprised+", "Relaxed"
+    ]
     catchphrase: str
 
 
@@ -25,9 +29,26 @@ class StreamerApp:
         self.root.geometry("300x200")
 
         self.emoticons = {
-            "Happy": "( •̀ ω •́ )✧", "Excited": "q(≧▽≦q)", "Sad": "(╯︵╰,)",
-            "Angry": "(╯°□°）╯︵ ┻━┻", "Surprised": "Σ(⊙▽⊙'')", "Neutral": "(￣_￣)",
-            "CUTE": "(｡♥‿♥｡)"
+            "Happy": "( •̀ ω •́ )✧",
+            "Excited": "q(≧▽≦q)",
+            "Sad": "(╯︵╰,)",
+            "Angry": "(╯°□°）╯︵ ┻━┻",
+            "Surprised": "Σ(⊙▽⊙'')",
+            "Neutral": "(￣_￣)",
+            "CUTE": "(｡♥‿♥｡)",
+            "Confused": "(・_・ヾ",
+            "Tired": "(－_－) zzZ",
+            "Motivated": "(ง •̀_•́)ง",
+            "Bored": "(－‸ლ)",
+            "Proud": "(๑•̀ㅂ•́)و✧",
+            "Nervous": "(；・∀・)",
+            "Shy": "(⁄ ⁄•⁄ω⁄•⁄ ⁄)",
+            "Cool": "(⌐■_■)",
+            "In Love": "(♥ω♥*)",
+            "Exhausted": "(×_×;）",
+            "Embarrassed": "(⁄ ⁄•⁄-⁄•⁄ ⁄)",
+            "Surprised+": "(⊙_☉)",
+            "Relaxed": "(˘︶˘).｡*♡"
         }
         self.create_menu()
         
@@ -52,6 +73,7 @@ class StreamerApp:
         
         # --- Settings ---
         self.llm_model = tk.StringVar(value="gemma3:4b")
+        self.save_path = tk.StringVar(value="./screenshot.png")
 
         self.q = queue.Queue()
         self.loading_chars = "|/-\\"
@@ -69,13 +91,17 @@ class StreamerApp:
     def open_settings_window(self):
         settings_win = tk.Toplevel(self.root)
         settings_win.title("Settings")
-        settings_win.geometry("300x150")
-        settings_win.transient(self.root) 
-        settings_win.grab_set() 
+        settings_win.geometry("350x180")
+        settings_win.transient(self.root)
+        settings_win.grab_set()
 
         ttk.Label(settings_win, text="Ollama Code:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
         model_entry = ttk.Entry(settings_win, textvariable=self.llm_model, width=30)
         model_entry.grid(row=0, column=1, padx=10, pady=10)
+
+        ttk.Label(settings_win, text="Screenshot-Pfad:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        path_entry = ttk.Entry(settings_win, textvariable=self.save_path, width=30)
+        path_entry.grid(row=1, column=1, padx=10, pady=10)
 
         button_frame = ttk.Frame(settings_win)
         button_frame.grid(row=2, column=0, columnspan=2, pady=10)
@@ -94,25 +120,33 @@ class StreamerApp:
 
     def run_ai_analysis(self):
         try:
-                path_addr = "screenshot.png"
-                screenshot = ImageGrab.grab()
-                screenshot.save(path_addr)
-                path = Path(path_addr)
-                response = chat(
-                    model='gemma3:4b',
-                    format=ImageDescription.model_json_schema(),
-                    messages=[
-                        {
+            path_addr = self.save_path.get()
+            screenshot = ImageGrab.grab()
+            screenshot.save(path_addr)
+            path = Path(path_addr)
+            response = chat(
+                model=self.llm_model.get(),
+                format=ImageDescription.model_json_schema(),
+                messages=[
+                    {
                         'role': 'user',
-                        'content': 'You are a streamer doing reactions! Analyze this image and return a detailed JSON including: what reaction in form of an emotion would fit best and a short comedic phrase that relates to the image and fits the emotion. Also not everything is a surprise, something might be boring pr just make you happy like code and feel cute like cats!.',
+                        'content': (
+                            'You are a streamer with a happy, energetic, nerdy personality who loves code and cats! '
+                            'Analyze this image and return a detailed JSON including: what reaction in form of an emotion would fit best and a short comedic phrase that relates to the image and fits the emotion. '
+                            'Your reactions should be fun, positive, and sometimes a bit geeky. You get excited about code, cute cats, and anything nerdy. '
+                            'Examples: If you see a cat, you might react with CUTE or In Love and say something like "This cat is cuter than my last Python script!". '
+                            'If you see code, you might react with Happy, Motivated, or Proud and say something like "Code is life! Let me refactor this with love.". '
+                            'If something is boring, react with Bored or Tired and make a witty comment. If something is embarrassing, use Embarrassed. '
+                            'You can use all available emotions: Happy, Excited, Sad, Angry, Surprised, Neutral, CUTE, Confused, Tired, Motivated, Bored, Proud, Nervous, Shy, Cool, In Love, Exhausted, Embarrassed, Surprised+, Relaxed. '
+                            'Be creative, nerdy, and always add a touch of code or cat love when possible!'
+                        ),
                         'images': [path],
-                        },
-                    ],
-                    options={'temperature': 0.2},
-                )
-                image_analysis = ImageDescription.model_validate_json(response.message.content)
-                
-                self.q.put(image_analysis)
+                    },
+                ],
+                options={'temperature': 0.2},
+            )
+            image_analysis = ImageDescription.model_validate_json(response.message.content)
+            self.q.put(image_analysis)
         except Exception as e:
             self.q.put(e)
 
