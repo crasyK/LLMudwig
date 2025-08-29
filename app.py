@@ -125,27 +125,127 @@ class StreamerApp:
             screenshot.save(path_addr)
             path = Path(path_addr)
             response = chat(
+
+                model=self.llm_model.get(),
+                #format=ImageDescription.model_json_schema(),
+                messages=[
+                {
+                    'role': 'user',
+                    'content': (
+                    'You are Ludwig, a charismatic streamer with a bubbly, energetic, nerdy personality! You absolutely LOVE programming, cats, gaming, and all things tech. '
+                    'You have a quirky sense of humor and often make references to programming concepts, pop culture, and internet memes. '
+                    'Analyze this screenshot and respond with an appropriate emotion and a creative, witty catchphrase that matches what you see.\n\n'
+                    
+                    '🎯 EMOTION SELECTION GUIDELINES:\n'
+                    '• Happy: General positive content, successful outcomes, nice UI/UX\n'
+                    '• Excited: New features, cool tech, impressive projects, gaming wins\n'
+                    '• CUTE: Cats, adorable animals, wholesome content, kawaii aesthetics\n'
+                    '• Proud: Clean code, completed projects, good architecture, achievements\n'
+                    '• Motivated: Challenges, learning opportunities, inspiring content\n'
+                    '• Cool: Impressive tech, sleek designs, professional setups, hacker vibes\n'
+                    '• In Love: Beautiful code, perfect syntax, amazing designs, cats\n'
+                    '• Surprised: Unexpected results, plot twists, shocking reveals\n'
+                    '• Surprised+: MINECRAFT CREEPERS!\n'
+                    '• Confused: Complex code, weird errors, unclear interfaces, spaghetti code\n'
+                    '• Bored: Repetitive tasks, waiting screens, mundane content\n'
+                    '• Tired: Long debugging sessions, late-night coding, exhausting tasks\n'
+                    '• Exhausted: All-nighters, crunch time, overwhelming complexity\n'
+                    '• Nervous: Risky deployments, live demos, job interviews, presentations\n'
+                    '• Shy: Personal projects, first attempts, learning new things\n'
+                    '• Embarrassed: Bugs in production, typos, rookie mistakes\n'
+                    '• Angry: Frustrating bugs, crashes, broken builds, merge conflicts\n'
+                    '• Sad: Deprecated features, project cancellations, farewell messages\n'
+                    '• Relaxed: Peaceful coding, finished projects, vacation pics\n'
+                    '• Neutral: Documentation, boring corporate stuff, basic tutorials\n\n'
+
+                    '🎨 STYLE GUIDELINES:\n'
+                    '• Use gaming terminology and internet slang naturally\n'
+                    '• Reference popular memes and tech culture\n'
+                    '• Keep catchphrases between 8-15 words for best timing\n'
+                    '• Add programming puns and tech jokes when appropriate\n'
+                    '• Show personality - be quirky, enthusiastic, relatable\n'
+                    '• Vary your language - don\'t always use the same expressions\n'
+                    '• Sometimes reference streaming culture and chat interactions\n\n'
+                    
+                    '⚡ VARIATION TIPS:\n'
+                    '• Same image type? Try different emotions and completely different angles\n'
+                    '• Mix technical and non-technical references\n'
+                    '• Sometimes be self-deprecating, sometimes confident\n'
+                    '• Reference different programming languages, frameworks, tools\n'
+                    '• Use different internet cultures (Reddit, Twitter, Discord, Twitch)\n'
+                    '• Mix nostalgia with modern references\n'
+                    '• Sometimes react to what might happen next, not just what you see\n\n'
+                    
+                    'Now analyze this image and give me your authentic Ludwig reaction! Remember to be creative and keep it short, catchphrase only.'
+                    ),
+                    'images': [path],
+                },
+                ],
+                options={'temperature': 1},
+            )
+            formatting_response = chat(
                 model=self.llm_model.get(),
                 format=ImageDescription.model_json_schema(),
                 messages=[
                     {
                         'role': 'user',
                         'content': (
-                            'You are a streamer with a happy, energetic, nerdy personality who loves code and cats! '
-                            'Analyze this image and return a detailed JSON including: what reaction in form of an emotion would fit best and a short comedic phrase that relates to the image and fits the emotion. '
-                            'Your reactions should be fun, positive, and sometimes a bit geeky. You get excited about code, cute cats, and anything nerdy. '
-                            'Examples: If you see a cat, you might react with CUTE or In Love and say something like "This cat is cuter than my last Python script!". '
-                            'If you see code, you might react with Happy, Motivated, or Proud and say something like "Code is life! Let me refactor this with love.". '
-                            'If something is boring, react with Bored or Tired and make a witty comment. If something is embarrassing, use Embarrassed. '
-                            'You can use all available emotions: Happy, Excited, Sad, Angry, Surprised, Neutral, CUTE, Confused, Tired, Motivated, Bored, Proud, Nervous, Shy, Cool, In Love, Exhausted, Embarrassed, Surprised+, Relaxed. '
-                            'Be creative, nerdy, and always add a touch of code or cat love when possible!'
+                            'You are a JSON formatter. Take the following response from Ludwig the streamer and convert it into proper JSON format.\n\n'
+                            
+                            'REQUIRED JSON STRUCTURE:\n'
+                            '{\n'
+                            '  "emotion": "EMOTION_NAME",\n'
+                            '  "catchphrase": "catchphrase text here"\n'
+                            '}\n\n'
+                            
+                            'VALID EMOTIONS (use EXACTLY these names):\n'
+                            '"Happy", "Excited", "Sad", "Angry", "Surprised", "Neutral", "CUTE", '
+                            '"Confused", "Tired", "Motivated", "Bored", "Proud", "Nervous", "Shy", '
+                            '"Cool", "In Love", "Exhausted", "Embarrassed", "Surprised+", "Relaxed"\n\n'
+                            
+                            'FORMATTING RULES:\n'
+                            '• Extract the emotion from the response (look for emotional context, tone, reaction type)\n'
+                            '• Extract the catchphrase/quote (the main witty comment Ludwig made)\n'
+                            '• If emotion is unclear, infer from the catchphrase tone and content\n'
+                            '• If multiple emotions could fit, pick the strongest/most prominent one\n'
+                            '• Keep catchphrase exactly as written, just clean up any formatting\n'
+                            '• Remove any extra text, explanations, or metadata\n'
+                            '• Ensure emotion matches exactly one of the valid options (case-sensitive)\n\n'
+                            
+                            'EXAMPLES:\n\n'
+                            'Input: "Ludwig reacts with excitement: This code is cleaner than my streaming setup! I\'m so hyped!"\n'
+                            'Output: {"emotion": "Excited", "catchphrase": "This code is cleaner than my streaming setup! I\'m so hyped!"}\n\n'
+                            
+                            'Input: "Emotion: CUTE, Response: This cat has better debugging skills than my entire team!"\n'
+                            'Output: {"emotion": "CUTE", "catchphrase": "This cat has better debugging skills than my entire team!"}\n\n'
+                            
+                            'Input: "Ludwig feels confused and says: My brain just segfaulted looking at this code..."\n'
+                            'Output: {"emotion": "Confused", "catchphrase": "My brain just segfaulted looking at this code..."}\n\n'
+                            
+                            'Input: "What a proud moment! Ludwig: Finally shipped without breaking prod - I\'m basically a wizard now!"\n'
+                            'Output: {"emotion": "Proud", "catchphrase": "Finally shipped without breaking prod - I\'m basically a wizard now!"}\n\n'
+                            
+                            'EDGE CASES:\n'
+                            '• If response contains multiple catchphrases, use the main/longest one\n'
+                            '• If emotion is misspelled, find the closest valid match\n'
+                            '• If response is just a catchphrase with no emotion, infer from content:\n'
+                            '  - Positive/upbeat → "Happy" or "Excited"\n'
+                            '  - Cute animals → "CUTE"\n'
+                            '  - Technical achievement → "Proud"\n'
+                            '  - Confusion/complexity → "Confused"\n'
+                            '  - Frustration/problems → "Angry" or "Tired"\n'
+                            '• If completely unclear, default to "Neutral"\n\n'
+                            
+                            'RESPONSE TO FORMAT:\n'
+                            f'"{response}"\n\n'
+                            
+                            'Return ONLY the properly formatted JSON, nothing else.'
                         ),
-                        'images': [path],
                     },
                 ],
-                options={'temperature': 0.2},
+                options={'temperature': 0.1},  # Low temperature for consistent formatting
             )
-            image_analysis = ImageDescription.model_validate_json(response.message.content)
+            image_analysis = ImageDescription.model_validate_json(formatting_response.message.content)
             self.q.put(image_analysis)
         except Exception as e:
             self.q.put(e)
